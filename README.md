@@ -1,4 +1,4 @@
-# flutter_frontend
+# flutterFrontend
 
 A new Flutter project.
 

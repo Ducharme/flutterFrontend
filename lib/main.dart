@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:flutter_map/flutter_map.dart';
@@ -24,7 +25,7 @@ final mapController = MapController();
 final h3 = const h3_flutter.H3Factory().load();
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 TextStyle getDefaultTextStyle() {
@@ -36,37 +37,27 @@ TextStyle getDefaultTextStyle() {
 }
 
 Container buildTextWidget(String word) {
-  return Container(
-      alignment: Alignment.center,
-      child: Text(
-          word,
-          textAlign: TextAlign.center,
-          style: getDefaultTextStyle()
-      )
-  );
+  return Container(alignment: Alignment.center, child: Text(word, textAlign: TextAlign.center, style: getDefaultTextStyle()));
 }
 
 Marker buildMarker(LatLng coordinates, String word) {
-  return Marker(
-      point: coordinates,
-      width: 100,
-      height: 12,
-      builder: (context) => buildTextWidget(word)
-  );
+  return Marker(point: coordinates, width: 100, height: 12, builder: (context) => buildTextWidget(word));
 }
 
 List<Polygon> buildPolygons() {
-  if (!isMapControllerReady) return [];
+  if (!isMapControllerReady) {
+    return [];
+  }
 
   const extraFillArea = 0.2;
   final bounds = mapController.bounds!;
   final zoom = mapController.zoom.toInt();
-  final resolution = zoom > 2 ? zoom - 2 : (zoom > 1 ? zoom -1 : zoom);
+  final resolution = zoom > 2 ? zoom - 2 : (zoom > 1 ? zoom - 1 : zoom);
 
-  final x1 = math.min(bounds.northWest!.longitude, bounds.southEast!.longitude);
-  final x2 = math.max(bounds.northWest!.longitude, bounds.southEast!.longitude);
-  final y1 = math.min(bounds.northWest!.latitude, bounds.southEast!.latitude);
-  final y2 = math.max(bounds.northWest!.latitude, bounds.southEast!.latitude);
+  final x1 = math.min(bounds.northWest.longitude, bounds.southEast.longitude);
+  final x2 = math.max(bounds.northWest.longitude, bounds.southEast.longitude);
+  final y1 = math.min(bounds.northWest.latitude, bounds.southEast.latitude);
+  final y2 = math.max(bounds.northWest.latitude, bounds.southEast.latitude);
   final dh = x2 - x1;
   final dv = y2 - y1;
 
@@ -86,15 +77,16 @@ List<Polygon> buildPolygons() {
   final c1 = h3_dart.GeoCoord(lat: y2b, lon: x2b);
   final c2 = h3_dart.GeoCoord(lat: y1b, lon: x2b);
   final c3 = h3_dart.GeoCoord(lat: y1b, lon: x1b);
-  print([ c0, c1, c2, c3 ].toString());
-  listOfCoordinates.add([ c0, c1, c2, c3 ]);
+  if (kDebugMode) {
+    print([c0, c1, c2, c3].toString());
+  }
+  listOfCoordinates.add([c0, c1, c2, c3]);
 
   final h3indices = listOfCoordinates.map((coordinates) => h3.polyfill(coordinates: coordinates, resolution: resolution)).expand((index) => index);
   //print ("h3indices: " + h3indices.length.toString() + " zoom: " + zoom.toString());
-  final points = h3indices.map((h) => getLatLngFromGeoCoord(h)).where((ll) => ll.length > 0);
+  final points = h3indices.map((h) => getLatLngFromGeoCoord(h)).where((ll) => ll.isNotEmpty);
   //print ("h3indices: " + h3indices.length.toString() + " zoom: " + zoom.toString() + " points: " + points.length.toString());
-  return points.map((pts) => Polygon(points: pts, color: Colors.blue.withOpacity(0.1),
-      borderStrokeWidth: 1, borderColor: Colors.blue.withOpacity(0.3), isFilled: true)).toList();
+  return points.map((pts) => Polygon(points: pts, color: Colors.blue.withOpacity(0.1), borderStrokeWidth: 1, borderColor: Colors.blue.withOpacity(0.3), isFilled: true)).toList();
 }
 
 List<LatLng> getLatLngFromGeoCoord(BigInt h3Index) {
@@ -111,30 +103,30 @@ List<LatLng> getLatLngFromGeoCoord(BigInt h3Index) {
     return latLngs;
   }
 
-  for (var i=0; i < h.length; i++) {
+  for (var i = 0; i < h.length; i++) {
     final ll = LatLng(h[i].lat, h[i].lon);
     latLngs.add(ll);
   }
   return latLngs;
 }
 
-Future<Map<String, String>?> getAdditionalOptions (BuildContext context) async {
+Future<Map<String, String>?> getAdditionalOptions(BuildContext context) async {
   try {
     String jsonData = await DefaultAssetBundle.of(context).loadString("secrets.json");
     final jsonResult = json.decode(jsonData);
-    Map<String, String> m = <String, String>{
-      "userId": jsonResult["userId"],
-      "mapStyleId": jsonResult["mapStyleId"],
-      "accessToken": jsonResult["accessToken"]
-    };
+    Map<String, String> m = <String, String>{"userId": jsonResult["userId"], "mapStyleId": jsonResult["mapStyleId"], "accessToken": jsonResult["accessToken"]};
     return m;
   } catch (e) {
-    print(e);
+    if (kDebugMode) {
+      print(e);
+    }
     return null;
   }
 }
 
 class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
   @override
   State<StatefulWidget> createState() {
     return _MyAppState();
@@ -156,7 +148,7 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  //@override
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
@@ -178,15 +170,19 @@ class _MyAppState extends State<MyApp> {
                     print ("onPositionChanged position(nw,se):[$pnw],[$pse]");*/
                   },
                   onMapReady: () {
-                    var bnw = "${mapController.bounds?.northWest?.latitude?.toString()},${mapController?.bounds?.northWest?.longitude?.toString()}";
-                    var bse = "${mapController.bounds?.southEast?.latitude?.toString()},${mapController?.bounds?.southEast?.longitude?.toString()}";
-                    print ("onMapReady bounds(nw,se):[$bnw],[$bse]");
+                    var bnw = "${mapController.bounds?.northWest.latitude.toString()},${mapController.bounds?.northWest.longitude.toString()}";
+                    var bse = "${mapController.bounds?.southEast.latitude.toString()},${mapController.bounds?.southEast.longitude.toString()}";
+                    if (kDebugMode) {
+                      print("onMapReady bounds(nw,se):[$bnw],[$bse]");
+                    }
                     isMapControllerReady = true;
                     _updatePolygons();
 
                     mapController.mapEventStream.listen((evt) {
                       if (evt.toString() == "Instance of 'MapEventMoveEnd'") {
-                        print("MapEventMoveEnd");
+                        if (kDebugMode) {
+                          print("MapEventMoveEnd");
+                        }
                         _updatePolygons();
                       }
                     });
@@ -199,19 +195,19 @@ class _MyAppState extends State<MyApp> {
                     attributionBuilder: (context) => Row(
                       children: [
                         SvgPicture.asset('assets/images/mapbox_2019.svg', height: 16),
-                        Text(' | © '),
+                        const Text(' | © '),
                         InkWell(
-                          child: Text('Mapbox'),
+                          child: const Text('Mapbox'),
                           onTap: () => launchUrl(Uri.parse('https://www.mapbox.com/about/maps/')),
                         ),
-                        Text(' | © '),
+                        const Text(' | © '),
                         InkWell(
-                          child: Text('OpenStreetMap'),
+                          child: const Text('OpenStreetMap'),
                           onTap: () => launchUrl(Uri.parse('http://www.openstreetmap.org/about/')),
                         ),
-                        Text(' | '),
+                        const Text(' | '),
                         InkWell(
-                          child: Text('Improve this map'),
+                          child: const Text('Improve this map'),
                           onTap: () => launchUrl(Uri.parse('https://www.mapbox.com/map-feedback/#/-74.5/40/10')),
                         ),
                       ],
@@ -222,21 +218,17 @@ class _MyAppState extends State<MyApp> {
                   TileLayer(
                       urlTemplate: "https://api.mapbox.com/styles/v1/{userId}/{mapStyleId}/tiles/256/{z}/{x}/{y}@2x?access_token={accessToken}",
                       additionalOptions: snapshot.data,
-                      userAgentPackageName: 'com.lafleet.app'
-                  ),
+                      userAgentPackageName: 'com.lafleet.app'),
                   // Examples from https://dev.to/raphaeldelio/getting-started-with-flutter-map-1p30
                   // Check later API desc from https://docs.stadiamaps.com/native-multiplatform/flutter-map/
-                  PolygonLayer(
-                      polygonCulling: false,
-                      polygons: polygons
-                  ),
+                  PolygonLayer(polygonCulling: false, polygons: polygons),
                 ], // children
               );
             } else if (snapshot.hasError) {
               return Text("Error: ${snapshot.error}");
             } else {
               // Display progress indicator while data is loading
-              return CircularProgressIndicator();
+              return const CircularProgressIndicator();
             }
           },
         ),
@@ -244,4 +236,3 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
-
