@@ -1,16 +1,16 @@
 # flutterFrontend
 
-A new Flutter project.
+## Setup
 
-## Getting Started
+Create secrets.json in the root folder with 3 values from your mapbox account
+`
+{
+  "userId": "",
+  "mapStyleId": "23 alpha-numeric chars",
+  "accessToken": "pk.ey------"
+}
+`
 
-This project is a starting point for a Flutter application.
+## Notes
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Only tested on Android and Linux. Web version is missing wrapper for h3 lib.
